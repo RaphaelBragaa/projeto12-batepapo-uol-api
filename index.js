@@ -3,7 +3,11 @@ import cors from 'cors'
 import {MongoClient} from 'mongodb'
 import dotenv from "dotenv";
 import joi from 'joi'
+import dayjs from 'dayjs'
 
+console.log(dayjs().format('HH:MM:ss'))
+
+const tempo=dayjs()
 
 dotenv.config()
 
@@ -57,6 +61,7 @@ server.get('/participants', async (req,res)=>{
 
 server.post('/participants', async (req,res)=>{
     const name = req.body
+    console.log(name)
     const validation = nameSchema.validate(name, { abortEarly: true });
     const verificarNome= await db.collection('participants').findOne({name:name.name})
     console.log(verificarNome)
@@ -70,10 +75,19 @@ server.post('/participants', async (req,res)=>{
         res.status(422).send(validation.error.details[0].message)
         return
     }
-    db.collection('participants').insertOne({
+     db.collection('participants').insertOne({
         name:name.name,
        lastStatus: Date.now(),
     })
+     db.collection('messages').insertOne({
+        from: name.name, 
+        to: 'Todos', 
+        text: 'entra na sala...', 
+        type: 'status', 
+        time: tempo.format('HH:MM:ss')
+    })
+
+    res.status(201).send()
 
 })
 
@@ -85,7 +99,8 @@ server.post('/messages', async(req,res)=>{
      const message={from:user,
                     to:to,
                     text:text,
-                    type:type}
+                    type:type,
+                    time:tempo.format('HH:MM:ss')}
 
                     //console.log(message)
     
@@ -93,7 +108,8 @@ server.post('/messages', async(req,res)=>{
         from: joi.string(), 
         to: joi.string(), 
         text: joi.string().required(), 
-        type: joi.string().valid("message", "private_message").required(), 
+        type: joi.string().valid("message", "private_message").required(),
+        time: joi.string(),
     })
 
     const validation= message1Schema.validate(message,{abortEarly: true})
@@ -101,6 +117,10 @@ server.post('/messages', async(req,res)=>{
     console.log(verificarNome)
     if(validation.error && !verificarNome){
         res.status(422).send(validation.error.details)
+        return
+    }else{
+        db.collection('messages').insertOne(message)
+        res.status(201).send()
         return
     }
 
@@ -114,7 +134,7 @@ server.post('/messages', async(req,res)=>{
 
 
 
-    res.send('ok')
+
 })
 
 server.get('/status',(req,res)=>{
