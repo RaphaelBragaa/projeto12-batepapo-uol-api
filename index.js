@@ -42,7 +42,6 @@ const messageSchema=joi.object({
 })
 const nameSchema=joi.object({name:joi.string()})
 
-const names=[]
 
 
 server.get('/participants', async (req,res)=>{
@@ -56,7 +55,7 @@ server.get('/participants', async (req,res)=>{
         return
     }
     
-    //res.send(names)
+    
 })
 
 server.post('/participants', async (req,res)=>{
@@ -94,15 +93,12 @@ server.post('/participants', async (req,res)=>{
 server.post('/messages', async(req,res)=>{
    
     const {user} = req.headers
-    //.log(user)
     const {to,text,type}=req.body
      const message={from:user,
                     to:to,
                     text:text,
                     type:type,
                     time:tempo.format('HH:MM:ss')}
-
-                    //console.log(message)
     
     const message1Schema=joi.object({
         from: joi.string(), 
@@ -137,7 +133,45 @@ server.post('/messages', async(req,res)=>{
 
 })
 
-server.get('/status',(req,res)=>{
+server.get('/messages', async (req,res)=>{
+    const limit = Number(req.query.limit)
+    const {user} = req.headers
+
+
+    if(limit === NaN){
+        try{
+            const messages = await db.collection('messages').find().toArray()
+            const messagesFilter=messages.filter(message=>{
+                                                            const{to,from,type}=message                                                                     
+                                                            const userSelected = from === user || to === 'Todos' || to === user || type === 'message'
+                                                            return userSelected
+                                                        })
+            console.log(messagesFilter)                            
+            res.send(messagesFilter)
+        }catch(error){
+            res.status(444).send()
+            return
+        }
+    }else{
+        try{
+        const messages= await db.collection('messages').find().toArray()
+        const messagesFilter=messages.filter(message=>{
+            const{to,from,type}=message                                                                     
+            const userSelected = from === user || to === 'Todos' || to === user || type === 'message'
+            return userSelected
+        })
+        const M=messagesFilter.slice(-limit)
+        res.send(M)
+    }catch(error){
+        res.status(445).send()
+            return
+    }
+    }
+})
+
+server.get('/status', async (req,res)=>{
+    const {user} = req.headers
+
     res.send('ok')
 })
 
