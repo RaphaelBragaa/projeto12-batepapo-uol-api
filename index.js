@@ -170,9 +170,20 @@ server.get('/messages', async (req,res)=>{
 })
 
 server.get('/status', async (req,res)=>{
-    const {user} = req.headers
+    const name = req.headers
+    console.log(name.user)
+    
+    const verificarNome= await db.collection('participants').findOne({name:name.user})
+    console.log(verificarNome)
+    if(!verificarNome){
+        res.status(404).send()
+        return
+    }else{
+        db.collection('participants').updateOne({name:name.user},{$set:{lastStatus:Date.now()}})
+        res.status(200).send()
+    }
 
-    res.send('ok')
+    
 })
 
 
