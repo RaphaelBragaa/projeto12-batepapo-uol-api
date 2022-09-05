@@ -60,12 +60,10 @@ server.get('/participants', async (req,res)=>{
 
 server.post('/participants', async (req,res)=>{
     const name = req.body
-    console.log(name)
     const validation = nameSchema.validate(name, { abortEarly: true });
     const verificarNome= await db.collection('participants').findOne({name:name.name})
-    console.log(verificarNome)
     if(!verificarNome){
-       console.log('diferente')
+     
     }else{
          res.status(409).send('Esse nome já foi cadastrado !')
          return
@@ -110,7 +108,7 @@ server.post('/messages', async(req,res)=>{
 
     const validation= message1Schema.validate(message,{abortEarly: true})
     const verificarNome= await db.collection('participants').findOne({name:message.from})
-    console.log(verificarNome)
+   // console.log(verificarNome)
     if(validation.error && !verificarNome){
         res.status(422).send(validation.error.details)
         return
@@ -119,17 +117,6 @@ server.post('/messages', async(req,res)=>{
         res.status(201).send()
         return
     }
-
-    
-    
-
-  
-
-   // console.log(message)
-
-
-
-
 
 })
 
@@ -146,7 +133,7 @@ server.get('/messages', async (req,res)=>{
                                                             const userSelected = from === user || to === 'Todos' || to === user || type === 'message'
                                                             return userSelected
                                                         })
-            console.log(messagesFilter)                            
+            //console.log(messagesFilter)                            
             res.send(messagesFilter)
         }catch(error){
             res.status(444).send()
@@ -171,10 +158,10 @@ server.get('/messages', async (req,res)=>{
 
 server.get('/status', async (req,res)=>{
     const name = req.headers
-    console.log(name.user)
+    //console.log(name.user)
     
     const verificarNome= await db.collection('participants').findOne({name:name.user})
-    console.log(verificarNome)
+    //console.log(verificarNome)
     if(!verificarNome){
         res.status(404).send()
         return
@@ -185,6 +172,35 @@ server.get('/status', async (req,res)=>{
 
     
 })
+
+setInterval(async()=>{
+    const Dezsegundos = Date.now() - 10000
+    
+
+    try{
+        const inativos = await db.collection('participants').find({lastStatus:{ $lte: Dezsegundos } }).toArray()
+        await db.collection('participants').deleteMany({lastStatus:{ $lte: Dezsegundos } })
+        if(inativos.length> 0){
+            const inativo = inativos.map(inativo => {
+                return {
+                  from: inativo.name,
+                  to: 'Todos',
+                  text: 'sai da sala...',
+                  type: 'status',
+                  time: dayjs().format('HH:mm:ss')
+                };
+              });
+              await db.collection('messages').insertMany(inativo)
+            
+        }
+       
+
+    }catch(error){
+        console.log('não deletou')
+    }
+
+
+        },15000)
 
 
 server.listen(5000)
